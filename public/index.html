@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Rocket Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-4">
+          <div id="map-canvas" style="width:600px;height:400px"></div>
+        </div>
+        <div class="col-8">
+          <div style="width: 100%">
+            <canvas id="canvas"></canvas>
+          </div>
+        </div>
+      </div>
+      <button type="button" onclick="start()" class="btn btn-primary">Start</button>
+      <button type="button" onclick="stop()" class="btn btn-secondary">Stop</button>
+    </div>
+    <script>
+    var max_diff = 0.0001;
+    var max_length = 1200;
+    var socket = io();
+    socket.on('data', function(data){
+      difflat = data["fc.ins.latcx"] - window.lat;
+      difflng = data["fc.ins.loncx"] - window.lng;
+      window.lat = data["fc.ins.latcx"];
+      window.lng = data["fc.ins.loncx"];
+      add_graph_data(data);
+      if(Math.abs(difflat) + Math.abs(difflng) > max_diff){
+        redraw();
+      }
+    });
+    socket.on('complete', function(){
+      alert('complete');
+    });
+    function start(){
+      socket.emit('start');
+    }
+    function stop(){
+      socket.emit('stop');
+    }
+
+    var config = {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Altitude",
+          fill: false,
+          data: []
+        }]
+      },
+      options: {
+        animation: {
+          duration: 0
+        },
+        hover: {
+          animationDuration: 0
+        },
+        responsiveAnimationDuration: 0
+      }
+    };
+
+    window.onload = function() {
+      var ctx = document.getElementById("canvas").getContext("2d");
+      window.myLine = new Chart(ctx, config);
+    };
+
+    function add_graph_data(data) {
+      if (config.data.datasets.length > 0) {
+        config.data.labels.push(data["sys.exec.out.time"]);
+        if(config.data.labels.length > max_length){
+          config.data.labels.shift()
+        }
+
+        config.data.datasets[0].data.push(data["fc.ins.altc"]);
+        if(config.data.datasets[0].data.length > max_length){
+          config.data.datasets[0].data.shift()
+        }
+
+        /*for (var index = 0; index < config.data.datasets.length; ++index) {
+          if (typeof config.data.datasets[index].data[0] === "object") {
+            config.data.datasets[index].data.push({
+              x: config.data.datasets[index].data.length,
+              y: Math.random(),
+            });
+          } else {
+            config.data.datasets[index].data.push(data["fc.ins.altc"]);
+            if(config.data.datasets.length > max_length){
+              config.data.datasets[index].data.shift()
+            }
+          }
+        }*/
+
+        window.myLine.update();
+      }
+    };
+
+    window.lat =  22.13853037711356;
+    window.lng = 120.8925939162524;
+    var map;
+    var mark;
+    var lineCoords = [];
+    var initialize = function() {
+      map  = new google.maps.Map(document.getElementById('map-canvas'), {center:{lat:lat,lng:lng},zoom:10});
+      mark = new google.maps.Marker({position:{lat:lat, lng:lng}, map:map});
+      lineCoords.push(new google.maps.LatLng(window.lat, window.lng));
+    };
+    window.initialize = initialize;
+    var redraw = function() {
+      lat = window.lat;
+      lng = window.lng;
+      map.setCenter({lat:lat, lng:lng, alt:0});
+      mark.setPosition({lat:lat, lng:lng, alt:0});
+      lineCoords.push(new google.maps.LatLng(lat, lng));
+      var lineCoordinatesPath = new google.maps.Polyline({
+        path: lineCoords,
+        geodesic: true,
+        strokeColor: '#2E10FF'
+      });
+
+      lineCoordinatesPath.setMap(map);
+    };
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyBnLEyY2pvcAanV9kRrjLB4tfom2Mf-5zk&callback=initialize"></script>
+  </body>
+</html>
