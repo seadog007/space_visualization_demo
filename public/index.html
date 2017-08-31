@@ -71,6 +71,18 @@
         }]
       },
       options: {
+        scales: {
+          xAxes: [{
+            ticks: {
+                beginAtZero: true
+            }
+          }],
+          yAxes: [{
+            ticks: {
+                beginAtZero: true
+            }
+          }]
+        },
         animation: {
           duration: 0
         },
@@ -89,14 +101,14 @@
     function add_graph_data(data) {
       if (config.data.datasets.length > 0) {
         config.data.labels.push(data["sys.exec.out.time"]);
-        if(config.data.labels.length > max_length){
+        config.data.datasets[0].data.push(data["fc.ins.altc"]);
+        /*if(config.data.labels.length > max_length){
           config.data.labels.shift()
         }
 
-        config.data.datasets[0].data.push(data["fc.ins.altc"]);
         if(config.data.datasets[0].data.length > max_length){
           config.data.datasets[0].data.shift()
-        }
+        }/*
 
         /*for (var index = 0; index < config.data.datasets.length; ++index) {
           if (typeof config.data.datasets[index].data[0] === "object") {
